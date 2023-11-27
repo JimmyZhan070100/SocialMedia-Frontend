@@ -1,0 +1,65 @@
+.regisbtn {
+  cursor: pointer;
+  width: 100%;
+  background-color: #219ebc;
+  border: none;
+  box-sizing: border-box;
+  padding: 15px 32px;
+  justify-content: center;
+  margin: 4px 2px;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.regisbtn:active,
+.backbtn:active {
+  background-color: #219ebc;
+  box-shadow: 0 5px #666;
+  transform: translateY(4px);
+}
+
+.error {
+  color: red;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.backbtn,
+.back {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #f0f2f5;
+  background-color: #fb8500;
+  border: none;
+  padding: 15px 32px;
+  text-decoration: none;
+  font-size: 18px;
+  cursor: pointer;
+  width: 90%;
+  font-weight: bold;
+  border-radius: 0.5rem;
+  margin-left: 5%;
+}
+
+.back {
+  font-size: 20px;
+  font-weight: bold;
+  width: 100%;
+  color: white;
+  text-decoration: "none";
+  background-color: transparent;
+  &:focus,
+  &:hover,
+  &:visited,
+  &:link,
+  &:active {
+    text-decoration: none;
+  }
+}
+
+.backbtn:active {
+  background-color: #fb8500;
+}

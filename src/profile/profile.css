@@ -1,0 +1,54 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  word-wrap: break-word;
+  background-color: #fff;
+  background-clip: border-box;
+  border-radius: 0.25rem;
+}
+
+.profileInput {
+  border: none;
+  outline: none;
+  text-align: center;
+}
+
+.title {
+  padding: 0.3rem;
+  font-size: 4rem;
+  color: #0077b6;
+  font-weight: 700;
+}
+
+.Link-main {
+  display: flex;
+  border-radius: 0.2rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+  width: 10%;
+  color: white;
+  padding: 10px 5px;
+  text-decoration: "none";
+  background-color: #219ebc;
+  &:focus,
+  &:hover,
+  &:visited,
+  &:link,
+  &:active {
+    text-decoration: none;
+  }
+}
+
+.Link-main:active {
+  box-shadow: 0 5px #666;
+  transform: translateY(4px);
+}
+
+.profile-picture {
+  width: 40%;
+  height: 70%;
+}
