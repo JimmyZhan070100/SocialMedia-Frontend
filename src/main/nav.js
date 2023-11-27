@@ -7,21 +7,36 @@ const Nav = ({ updateForm }) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Clear localStorage
-    localStorage.clear();
-    // Navigate to the "Login" page
-    updateForm({
-      firstName: "",
-      lastName: "",
-      userName: "",
-      email: "",
-      phone: "",
-      zip: "",
-      birthDate: "",
-      password: "",
-      confirmPassword: "",
-    });
-    navigate("/login");
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/logout`, {
+      method: "PUT",
+      credentials: "include", // Include credentials for cookie-based authentication
+    })
+      .then((response) => {
+        if (response.ok) {
+          // Clear localStorage and reset form data
+          localStorage.clear();
+          updateForm({
+            firstName: "",
+            lastName: "",
+            userName: "",
+            email: "",
+            phone: "",
+            zip: "",
+            birthDate: "",
+            password: "",
+            confirmPassword: "",
+          });
+          // Navigate to the "Login" page
+          navigate("/login");
+        } else {
+          // Handle logout failure (optional)
+          console.error("Logout failed");
+        }
+      })
+      .catch((error) => {
+        // Handle network errors
+        console.error("Error:", error);
+      });
   };
 
   return (
