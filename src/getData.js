@@ -79,3 +79,26 @@ export const fetchHeadline = async (username) => {
     return null;
   }
 };
+
+export const fetchFollowing = (username) => {
+  return fetch(`${process.env.REACT_APP_BACKEND_URL}/following/${username}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to fetch following list");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      return data.following;
+    })
+    .catch((error) => {
+      console.error("Error fetching following list:", error);
+      throw error;
+    });
+};

@@ -26,7 +26,6 @@ const LeftSide = () => {
   };
 
   useEffect(() => {
-    // Retrieve user data from localStorage
     let userData = localStorage.getItem("user");
 
     // if (!userData) {
@@ -57,6 +56,13 @@ const LeftSide = () => {
           console.error("Error fetching headline:", error);
           setStatusHeadline("Unable to fetch headline");
         });
+
+      dataFetchers
+        .fetchFollowing(parsedUserData.username)
+        .then((following) => setFollowedUsers(following))
+        .catch((error) =>
+          console.error("Error fetching following list:", error)
+        );
     }
   }, []);
 
@@ -81,13 +87,10 @@ const LeftSide = () => {
         return response.json();
       })
       .then((data) => {
-        // Update the status headline in the local state
         setStatusHeadline(data.headline);
-
-        // Optionally, save the updated status headline to localStorage
         localStorage.setItem("statusHeadline", data.headline);
 
-        setNewStatus(""); // Clear the input field after updating
+        setNewStatus("");
       })
       .catch((error) => {
         console.error("Error updating headline:", error);
@@ -114,7 +117,10 @@ const LeftSide = () => {
         .then((response) => response.json())
         .then((data) => {
           if (data.username) {
-            setFollowedUsers(data.following);
+            setFollowedUsers((prevFollowedUsers) => [
+              ...prevFollowedUsers,
+              newFollowerUsername,
+            ]);
           } else {
             setError("This user does not exist.");
           }
@@ -128,14 +134,26 @@ const LeftSide = () => {
     }
   };
 
-  const handleUnfollowUser = (userId) => {
-    // Remove the user with the given ID from the list of followed users
-    setFollowedUsers((prevFollowedUsers) =>
-      prevFollowedUsers.filter((user) => user.id !== userId)
-    );
-    setUserIds((prevFollowedUsers) =>
-      prevFollowedUsers.filter((user) => user.id !== userId)
-    );
+  const handleUnfollowUser = (username) => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/following/${username}`, {
+      method: "DELETE",
+      credentials: "include", // Include credentials for cookie-based authentication
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to unfollow user");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Update the state to reflect the change in the followed users list
+        setFollowedUsers(data.following);
+        // Optionally, update other state or perform additional actions
+      })
+      .catch((error) => {
+        console.error("Error unfollowing user:", error);
+        setError(error.message);
+      });
   };
 
   return (
@@ -165,17 +183,13 @@ const LeftSide = () => {
       <div>
         <strong>Followed Users</strong>
         <div>
-          {followedUsers.map((followedUser) => (
-            <div key={followedUser.id}>
-              <img
-                src={getRandomImage()}
-                alt={`${followedUser.name}'s Profile`}
-              />
-              <div>{followedUser.username}</div>
-              <div>{followedUser.company?.catchPhrase}</div>
+          {followedUsers.map((followedUser, index) => (
+            <div key={index}>
+              <img src={getRandomImage()} alt={`${followedUser}'s Profile`} />
+              <div>{followedUser}</div>
               <button
                 className="unfollowBtn"
-                onClick={() => handleUnfollowUser(followedUser.id)}
+                onClick={() => handleUnfollowUser(followedUser)}
               >
                 Unfollow
               </button>
