@@ -4,6 +4,7 @@ import "../styles/style.css";
 import { Link, useNavigate } from "react-router-dom";
 import { connect } from "react-redux";
 import { updateFormData } from ".././actions";
+import * as dataFetchers from "../getData";
 
 const Register = ({ formData, updateForm }) => {
   const navigate = useNavigate();
@@ -76,8 +77,49 @@ const Register = ({ formData, updateForm }) => {
         })
         .then((data) => {
           if (data.result === "success") {
-            localStorage.setItem("formData", JSON.stringify(formData)); // You might want to store only non-sensitive data
-            navigate("/main");
+            localStorage.setItem("formData", JSON.stringify(formData));
+            fetch(`${process.env.REACT_APP_BACKEND_URL}/login`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              credentials: "include",
+              body: JSON.stringify({
+                username: formData.userName,
+                password: formData.password,
+              }),
+            })
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error("Invalid username or password");
+                }
+                return response.json();
+              })
+              .then((user) => {
+                // Assuming the backend returns user details on successful login
+                localStorage.setItem("user", JSON.stringify(user));
+                // Fetch additional user data
+                return Promise.all([
+                  dataFetchers.fetchEmail(formData.userName),
+                  dataFetchers.fetchPhone(formData.userName),
+                  dataFetchers.fetchZipcode(formData.userName),
+                  dataFetchers.fetchDob(formData.userName),
+                ]);
+              })
+              .then(([emailData, phoneData, zipcodeData, dobData]) => {
+                // Update the form data
+                const formDataUpdate = {
+                  userName: formData.userName,
+                  email: emailData.email,
+                  phone: phoneData.phone,
+                  zip: zipcodeData.zipcode,
+                  birthDate: dobData.dob,
+                  password: formData.password,
+                  confirmPassword: formData.password,
+                };
+                updateForm(formDataUpdate);
+                navigate("/main");
+              });
           } else {
             // Handle registration error
             setErrorMessages({ form: "Registration failed" });

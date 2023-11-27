@@ -3,6 +3,7 @@ import "../styles/style.css";
 import { Link, useNavigate } from "react-router-dom";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { updateFormData, loginFail } from "../actions";
+import * as dataFetchers from "../getData";
 
 const Login = ({ updateForm }) => {
   const [username, setUsername] = useState("");
@@ -31,13 +32,23 @@ const Login = ({ updateForm }) => {
       .then((user) => {
         // Assuming the backend returns user details on successful login
         localStorage.setItem("user", JSON.stringify(user));
-        // Update the form data as needed
+
+        // Fetch additional user data
+        return Promise.all([
+          dataFetchers.fetchEmail(username),
+          dataFetchers.fetchPhone(username),
+          dataFetchers.fetchZipcode(username),
+          dataFetchers.fetchDob(username),
+        ]);
+      })
+      .then(([emailData, phoneData, zipcodeData, dobData]) => {
+        // Update the form data
         const formDataUpdate = {
           userName: username,
-          email: "a@b.c",
-          phone: "123-456-7890",
-          zip: "12345",
-          birthDate: "",
+          email: emailData.email,
+          phone: phoneData.phone,
+          zip: zipcodeData.zipcode,
+          birthDate: dobData.dob,
           password: password,
           confirmPassword: password,
         };

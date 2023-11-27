@@ -57,7 +57,7 @@ const Profile = ({ formData, updateForm }) => {
               type="file"
               accept="image/*"
               id="profilePictureInput"
-              // onChange={(e) => handleImageChange(e, setProfilePicture)} //update profile image
+              onChange={(e) => handleImageChange(e, setProfilePicture)} //update profile image
               style={{ display: "none" }}
             />
             <button
