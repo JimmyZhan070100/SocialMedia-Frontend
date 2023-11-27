@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useArticle } from "./postProvider";
+import * as dataFetchers from "../getData";
 
 const LeftSide = () => {
   const { userIds, setUserIds, articles, setArticles } = useArticle();
@@ -44,26 +45,54 @@ const LeftSide = () => {
     if (userData) {
       const parsedUserData = JSON.parse(userData);
       setUser(parsedUserData);
-      setStatusHeadline(
-        parsedUserData.company?.catchPhrase || "Happy every day"
-      );
-    }
 
-    // Retrieve the status headline from localStorage on component mount
-    const savedStatusHeadline = localStorage.getItem("statusHeadline");
-    if (savedStatusHeadline) {
-      setStatusHeadline(savedStatusHeadline);
+      // Fetch the status headline using the user's username
+      dataFetchers
+        .fetchHeadline(parsedUserData.username)
+        .then((data) => {
+          // Set the status headline from the fetched data
+          setStatusHeadline(data.headline);
+        })
+        .catch((error) => {
+          console.error("Error fetching headline:", error);
+          setStatusHeadline("Unable to fetch headline");
+        });
     }
   }, []);
 
   const handleUpdateStatusHeadline = () => {
-    // Update the status headline with the newStatus value
-    setStatusHeadline(newStatus);
+    if (!newStatus.trim()) {
+      setError("Headline cannot be empty");
+      return;
+    }
 
-    // Save the updated status headline to localStorage
-    localStorage.setItem("statusHeadline", newStatus);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/headline`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ headline: newStatus }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to update headline");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        // Update the status headline in the local state
+        setStatusHeadline(data.headline);
 
-    setNewStatus(""); // Clear the input field after updating
+        // Optionally, save the updated status headline to localStorage
+        localStorage.setItem("statusHeadline", data.headline);
+
+        setNewStatus(""); // Clear the input field after updating
+      })
+      .catch((error) => {
+        console.error("Error updating headline:", error);
+        setError(error.message);
+      });
   };
 
   const handleFollowUser = () => {
