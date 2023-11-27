@@ -63,16 +63,21 @@ export const handleUpdate = (
   const newErrors = validateInputs(updatedData, formData);
 
   if (Object.keys(newErrors).length === 0) {
-    const updatedFormData = {
-      userName: updatedData.userName || formData.userName,
-      email: updatedData.email || formData.email,
-      phone: updatedData.phone || formData.phone,
-      zip: updatedData.zip || formData.zip,
-      password: updatedData.password || formData.password,
-      confirmPassword: updatedData.confirmPassword || formData.confirmPassword,
-    };
+    if (updatedData.email && updatedData.email !== formData.email) {
+      updateEmail(updatedData.email, setErrors, updateForm, formData);
+    }
 
-    updateForm(updatedFormData);
+    if (updatedData.password && updatedData.password !== formData.password) {
+      updatePassword(updatedData.password, setErrors, updateForm, formData);
+    }
+
+    if (updatedData.phone && updatedData.phone !== formData.phone) {
+      updatePhoneNumber(updatedData.phone, setErrors, updateForm, formData);
+    }
+
+    if (updatedData.zip && updatedData.zip !== formData.zip) {
+      updateZipCode(updatedData.zip, setErrors, updateForm, formData);
+    }
 
     setUpdatedData({
       userName: "",
@@ -80,9 +85,127 @@ export const handleUpdate = (
       phone: "",
       zip: "",
       password: "",
+      confirmPassword: "",
     });
-    localStorage.setItem("formData", JSON.stringify(updatedFormData));
   } else {
     setErrors(newErrors);
   }
+};
+
+export const updateEmail = (email, setErrors, updateForm, formData) => {
+  fetch(`${process.env.REACT_APP_BACKEND_URL}/email`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ email }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to update email");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.email === email) {
+        // Update local state and storage
+        const updatedFormData = { ...formData, email };
+        updateForm(updatedFormData);
+        localStorage.setItem("formData", JSON.stringify(updatedFormData));
+      } else {
+        setErrors({ email: "Failed to update email" });
+      }
+    })
+    .catch((error) => {
+      setErrors({ email: error.message });
+    });
+};
+
+export const updatePassword = (password, setErrors, updateForm, formData) => {
+  fetch(`${process.env.REACT_APP_BACKEND_URL}/password`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ password }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to update password");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.result === "success") {
+        // Update local state and storage
+        const updatedFormData = { ...formData, password };
+        updateForm(updatedFormData);
+        localStorage.setItem("formData", JSON.stringify(updatedFormData));
+      } else {
+        setErrors({ password: "Failed to update password" });
+      }
+    })
+    .catch((error) => {
+      setErrors({ password: error.message });
+    });
+};
+
+export const updatePhoneNumber = (phone, setErrors, updateForm, formData) => {
+  fetch(`${process.env.REACT_APP_BACKEND_URL}/phone`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ phone }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to update phone number");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.phone === phone) {
+        const updatedFormData = { ...formData, phone };
+        updateForm(updatedFormData);
+        localStorage.setItem("formData", JSON.stringify(updatedFormData));
+      } else {
+        setErrors({ phone: "Failed to update phone number" });
+      }
+    })
+    .catch((error) => {
+      setErrors({ phone: error.message });
+    });
+};
+
+export const updateZipCode = (zipcode, setErrors, updateForm, formData) => {
+  fetch(`${process.env.REACT_APP_BACKEND_URL}/zipcode`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify({ zipcode }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to update ZIP code");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.zipcode === zipcode) {
+        const updatedFormData = { ...formData, zip: zipcode };
+        updateForm(updatedFormData);
+        localStorage.setItem("formData", JSON.stringify(updatedFormData));
+      } else {
+        setErrors({ zip: "Failed to update ZIP code" });
+      }
+    })
+    .catch((error) => {
+      setErrors({ zip: error.message });
+    });
 };

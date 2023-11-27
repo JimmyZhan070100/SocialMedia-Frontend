@@ -16,6 +16,7 @@ const Login = ({ updateForm }) => {
       headers: {
         "Content-Type": "application/json",
       },
+      credentials: "include",
       body: JSON.stringify({
         username,
         password,
@@ -23,7 +24,6 @@ const Login = ({ updateForm }) => {
     })
       .then((response) => {
         if (!response.ok) {
-          console.log(process.env.REACT_APP_BACKEND_URL);
           throw new Error("Invalid username or password");
         }
         return response.json();
