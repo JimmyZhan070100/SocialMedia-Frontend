@@ -7,9 +7,12 @@ import {
   handleImageChange,
   handleUpdate,
   maskPassword,
+  fetchUserAvatar,
 } from "./profileUtility";
 import "./profile.css";
 
+const DEFAULT_AVATAR_URL =
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0M01YNSrXlAxDO-nSwD-a8FZLr8z3Acg5U-81iOejxQ&s";
 const Profile = ({ formData, updateForm }) => {
   const [updatedData, setUpdatedData] = useState({
     userName: "",
@@ -20,6 +23,7 @@ const Profile = ({ formData, updateForm }) => {
     confirmPassword: "",
   });
 
+  const [username, setUsername] = useState("");
   const [profilePicture, setProfilePicture] = useState(null);
   const [errors, setErrors] = useState({});
 
@@ -28,6 +32,13 @@ const Profile = ({ formData, updateForm }) => {
     const storedFormData = localStorage.getItem("formData");
     if (storedFormData) {
       updateForm(JSON.parse(storedFormData));
+    }
+
+    // Retrieve the logged-in user's username
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const { username } = JSON.parse(storedUser);
+      fetchUserAvatar(username, setProfilePicture);
     }
   }, [updateForm]);
 
@@ -45,11 +56,7 @@ const Profile = ({ formData, updateForm }) => {
         <div className="row">
           <div className="col d-flex flex-column align-items-center">
             <img
-              src={
-                profilePicture
-                  ? URL.createObjectURL(profilePicture)
-                  : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0M01YNSrXlAxDO-nSwD-a8FZLr8z3Acg5U-81iOejxQ&s"
-              }
+              src={profilePicture || DEFAULT_AVATAR_URL}
               alt="User Profile"
               className="profile-picture border border-secondary rounded"
             />
@@ -57,7 +64,9 @@ const Profile = ({ formData, updateForm }) => {
               type="file"
               accept="image/*"
               id="profilePictureInput"
-              onChange={(e) => handleImageChange(e, setProfilePicture)} //update profile image
+              onChange={(e) =>
+                handleImageChange(e, setProfilePicture, setUsername)
+              } //update profile image
               style={{ display: "none" }}
             />
             <button
@@ -93,8 +102,9 @@ const Profile = ({ formData, updateForm }) => {
                 name="userName"
                 type="text"
                 className="profileInput mb-3"
-                placeholder="New User Name"
+                placeholder=""
                 value={updatedData.userName}
+                disabled
                 onChange={(e) =>
                   handleInputChange(
                     e,

@@ -102,3 +102,27 @@ export const fetchFollowing = (username) => {
       throw error;
     });
 };
+
+export const fetchAvatar = async (username) => {
+  try {
+    const response = await fetch(
+      `${process.env.REACT_APP_BACKEND_URL}/avatar/${username}`,
+      {
+        method: "GET",
+        credentials: "include",
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch avatar");
+    }
+    const data = await response.json();
+    if (data.username !== username) {
+      throw new Error("Username mismatch");
+    }
+    console.log(data.avatar);
+    return data.avatar;
+  } catch (error) {
+    console.error("Error fetching avatar:", error);
+    return null;
+  }
+};

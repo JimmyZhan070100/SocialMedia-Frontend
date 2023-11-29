@@ -4,42 +4,20 @@ import * as dataFetchers from "../getData";
 
 const LeftSide = () => {
   const { userIds, setUserIds, articles, setArticles } = useArticle();
+  const DEFAULT_IMAGE =
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0M01YNSrXlAxDO-nSwD-a8FZLr8z3Acg5U-81iOejxQ&s";
   const [user, setUser] = useState({
     username: "Default Username",
   });
-
   const [statusHeadline, setStatusHeadline] = useState("");
+  const [profilePicture, setProfilePicture] = useState(null);
   const [newStatus, setNewStatus] = useState("");
   const [followedUsers, setFollowedUsers] = useState([]);
   const [newFollowerUsername, setNewFollowerUsername] = useState("");
   const [error, setError] = useState("");
-  const imageArr = [
-    "https://plus.unsplash.com/premium_photo-1696879454010-6aed21c32fc5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHwyfHx8ZW58MHx8fHx8&auto=format&fit=crop&w=250&q=60",
-    "https://images.unsplash.com/photo-1696543710864-fecad4bfbf62?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHw0MHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=60",
-    "https://images.unsplash.com/photo-1696197017974-e9bf6319eb54?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHwzOXx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=60",
-    "https://images.unsplash.com/photo-1683009427042-e094996f9780?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxlZGl0b3JpYWwtZmVlZHwyNnx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=60",
-  ];
-
-  const getRandomImage = () => {
-    const randomIndex = Math.floor(Math.random() * imageArr.length);
-    return imageArr[randomIndex];
-  };
 
   useEffect(() => {
     let userData = localStorage.getItem("user");
-
-    // if (!userData) {
-    //   // 'user' key doesn't exist in localStorage, get 'formData' instead
-    //   userData = localStorage.getItem("formData");
-    //   if (userData) {
-    //     userData = JSON.parse(userData);
-    //     userData.username = userData.userName;
-    //     userData.id = "-1";
-    //     localStorage.setItem("formData", JSON.stringify(userData));
-    //   }
-    // } else {
-    //   userData = JSON.parse(userData);
-    // }
 
     if (userData) {
       const parsedUserData = JSON.parse(userData);
@@ -58,8 +36,31 @@ const LeftSide = () => {
         });
 
       dataFetchers
+        .fetchAvatar(parsedUserData.username)
+        .then((avatarUrl) => setProfilePicture(avatarUrl))
+        .catch((error) => {
+          console.error("Error fetching avatar:", error);
+          setProfilePicture(DEFAULT_IMAGE);
+        });
+
+      dataFetchers
         .fetchFollowing(parsedUserData.username)
-        .then((following) => setFollowedUsers(following))
+        .then(async (following) => {
+          const fetchAvatarPromises = following.map(async (username) => {
+            try {
+              const avatarUrl = await dataFetchers.fetchAvatar(username);
+              return { username, avatar: avatarUrl || DEFAULT_IMAGE }; // defaultAvatarUrl is a fallback image URL
+            } catch (error) {
+              console.error(`Error fetching avatar for ${username}:`, error);
+              return { username, avatar: DEFAULT_IMAGE }; // Use fallback image in case of an error
+            }
+          });
+
+          const followedUsersWithAvatars = await Promise.all(
+            fetchAvatarPromises
+          );
+          setFollowedUsers(followedUsersWithAvatars);
+        })
         .catch((error) =>
           console.error("Error fetching following list:", error)
         );
@@ -98,47 +99,60 @@ const LeftSide = () => {
       });
   };
 
-  const handleFollowUser = () => {
-    // Check if the newFollowerUsername exists in the list of followed users
+  const handleFollowUser = async () => {
     if (followedUsers.some((user) => user.username === newFollowerUsername)) {
-      // Show an error message if the username already exists
       setError("This user is already followed.");
-    } else {
-      // Clear any previous error messages
-      setError("");
+      return;
+    }
 
-      fetch(
+    setError("");
+
+    try {
+      const response = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/following/${newFollowerUsername}`,
         {
           method: "PUT",
-          credentials: "include", // Include credentials for cookie-based authentication
+          credentials: "include",
         }
-      )
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.username) {
-            setFollowedUsers((prevFollowedUsers) => [
-              ...prevFollowedUsers,
-              newFollowerUsername,
-            ]);
-          } else {
-            setError("This user does not exist.");
-          }
-        })
-        .catch((error) => {
-          setError(error.message);
-        });
+      );
 
-      // Clear the input field
-      setNewFollowerUsername("");
+      if (!response.ok) {
+        throw new Error("Failed to add follower");
+      }
+
+      const data = await response.json();
+
+      if (data.username) {
+        // Fetch the avatar of the new follower
+        const avatarUrl = await dataFetchers.fetchAvatar(newFollowerUsername);
+        const newFollower = {
+          username: newFollowerUsername,
+          avatar: avatarUrl || DEFAULT_IMAGE,
+        };
+
+        // Update the followedUsers state
+        setFollowedUsers((prevFollowedUsers) => [
+          ...prevFollowedUsers,
+          newFollower,
+        ]);
+      } else {
+        setError("This user does not exist.");
+      }
+    } catch (error) {
+      setError(error.message);
     }
+
+    setNewFollowerUsername(""); // Clear the input field
   };
 
-  const handleUnfollowUser = (username) => {
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/following/${username}`, {
-      method: "DELETE",
-      credentials: "include", // Include credentials for cookie-based authentication
-    })
+  const handleUnfollowUser = (followedUser) => {
+    fetch(
+      `${process.env.REACT_APP_BACKEND_URL}/following/${followedUser.username}`,
+      {
+        method: "DELETE",
+        credentials: "include", // Include credentials for cookie-based authentication
+      }
+    )
       .then((response) => {
         if (!response.ok) {
           throw new Error("Failed to unfollow user");
@@ -146,9 +160,7 @@ const LeftSide = () => {
         return response.json();
       })
       .then((data) => {
-        // Update the state to reflect the change in the followed users list
         setFollowedUsers(data.following);
-        // Optionally, update other state or perform additional actions
       })
       .catch((error) => {
         console.error("Error unfollowing user:", error);
@@ -160,10 +172,7 @@ const LeftSide = () => {
     <div className="container">
       <div className="row justify-content-center">
         <div>
-          <img
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0M01YNSrXlAxDO-nSwD-a8FZLr8z3Acg5U-81iOejxQ&s"
-            alt="User Profile"
-          />
+          <img src={profilePicture} alt="User Profile" className="image-size" />
         </div>
         <div>
           <div>{user.username}</div>
@@ -185,8 +194,12 @@ const LeftSide = () => {
         <div>
           {followedUsers.map((followedUser, index) => (
             <div key={index}>
-              <img src={getRandomImage()} alt={`${followedUser}'s Profile`} />
-              <div>{followedUser}</div>
+              <img
+                src={followedUser.avatar}
+                alt={`${followedUser.username}'s Profile`}
+                className="image-size"
+              />
+              <div>{followedUser.username}</div>
               <button
                 className="unfollowBtn"
                 onClick={() => handleUnfollowUser(followedUser)}

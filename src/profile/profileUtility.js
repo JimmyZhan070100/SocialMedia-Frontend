@@ -20,9 +20,39 @@ export const maskPassword = (password) => {
   return "*".repeat(password.length);
 };
 
-export const handleImageChange = (e, setProfilePicture) => {
+export const handleImageChange = (e, setProfilePicture, setUsername) => {
   const file = e.target.files[0];
-  setProfilePicture(file);
+  if (!file) {
+    return; // Do nothing if no file is selected
+  }
+
+  const formData = new FormData();
+  formData.append("avatar", file);
+
+  const username = localStorage.getItem("user")
+    ? JSON.parse(localStorage.getItem("user")).username
+    : null;
+  setUsername(username); // Ensure we have the username from local storage
+
+  fetch(`${process.env.REACT_APP_BACKEND_URL}/avatar`, {
+    method: "PUT",
+    credentials: "include",
+    body: formData,
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to upload avatar");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.avatar) {
+        setProfilePicture(data.avatar);
+      }
+    })
+    .catch((error) => {
+      console.error("Error uploading avatar:", error);
+    });
 };
 
 export const validateInputs = (updatedData, formData) => {
@@ -207,5 +237,25 @@ export const updateZipCode = (zipcode, setErrors, updateForm, formData) => {
     })
     .catch((error) => {
       setErrors({ zip: error.message });
+    });
+};
+
+export const fetchUserAvatar = (username, setProfilePicture) => {
+  fetch(`${process.env.REACT_APP_BACKEND_URL}/avatar/${username}`, {
+    credentials: "include", // Include credentials for cookie-based authentication
+  })
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("Failed to fetch avatar");
+      }
+      return response.json();
+    })
+    .then((data) => {
+      if (data.avatar) {
+        setProfilePicture(data.avatar);
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to fetch avatar:", error);
     });
 };
