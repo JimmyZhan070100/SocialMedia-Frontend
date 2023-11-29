@@ -1,37 +1,16 @@
-import React, { useState, useEffect } from "react";
-import { useArticle } from "./postProvider";
+import React, { useState } from "react";
 
 const Posts = () => {
-  const { userIds, setUserIds, articles, setArticles } = useArticle();
-
+  const [articles, setArticles] = useState([]);
   const [newArticle, setNewArticle] = useState("");
-  // const [articles, setArticles] = useState([]);
+  const [newArticleImage, setNewArticleImage] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [searchText, setSearchText] = useState("");
-  const [users, setUsers] = useState([]);
   const [commentedArticleId, setCommentedArticleId] = useState(null);
 
-  const placeholderImageUrls = [
-    "https://plus.unsplash.com/premium_photo-1696879454010-6aed21c32fc5?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHwyfHx8ZW58MHx8fHx8&auto=format&fit=crop&w=250&q=60",
-    "https://plus.unsplash.com/premium_photo-1695331858356-fd4f3d8fd3d1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHwxM3x8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=250&q=60",
-    "https://images.unsplash.com/photo-1696928634052-41aa345ef686?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHw0fHx8ZW58MHx8fHx8&auto=format&fit=crop&w=250&q=60",
-    "https://images.unsplash.com/photo-1696945157988-5dbff7a97d02?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxlZGl0b3JpYWwtZmVlZHwzfHx8ZW58MHx8fHx8&auto=format&fit=crop&w=250&q=60",
-  ];
-
-  const getRandomImageUrl = () => {
-    const randomIndex = Math.floor(Math.random() * placeholderImageUrls.length);
-    return placeholderImageUrls[randomIndex];
-  };
-
-  const getRandomTimestamp = (start, end) => {
-    const randomDate = new Date(
-      start.getTime() + Math.random() * (end.getTime() - start.getTime())
-    );
-    return randomDate.toISOString();
-  };
-
+  // Retrieve user data from localStorage
   let userData = localStorage.getItem("user");
   if (!userData) {
-    // 'user' key doesn't exist in localStorage, get 'formData' instead
     userData = localStorage.getItem("formData");
     if (userData) {
       userData = JSON.parse(userData);
@@ -43,72 +22,64 @@ const Posts = () => {
     userData = JSON.parse(userData);
   }
 
+  // Function to handle the posting of a new article
   const handlePostArticle = () => {
     const newArticleObject = {
       id: Date.now(),
-      userId: 0,
+      userId: userData.id,
       title: newArticle,
       body: newArticle,
       author: userData.username,
-      // imageUrl: getRandomImageUrl(),
+      imageUrl: newArticleImage ? URL.createObjectURL(newArticleImage) : null,
       timestamp: new Date().toISOString(),
     };
 
     setArticles([newArticleObject, ...articles]);
     setNewArticle("");
+    setNewArticleImage(null);
+    setFileInputKey(Date.now()); // Reset the file input
   };
 
-  const handleCancelArticle = () => {
-    setNewArticle("");
-  };
-
+  // Function to handle image uploads
   const handleImageUpload = (e) => {
     const selectedImage = e.target.files[0];
-    // You can process the selected image here (e.g., upload it to a server)
-    // For simplicity, this example doesn't include actual image processing.
+    setNewArticleImage(selectedImage);
   };
 
+  // Function to cancel the current article creation
+  const handleCancelArticle = () => {
+    setNewArticle("");
+    setNewArticleImage(null);
+    setFileInputKey(Date.now());
+  };
+
+  // Function to delete an article
   const handleDeleteArticle = (articleId) => {
-    const updatedArticles = articles.filter(
-      (article) => article.id !== articleId
-    );
-    setArticles(updatedArticles);
+    setArticles(articles.filter((article) => article.id !== articleId));
   };
 
-  const filteredArticles = articles.filter((article) => {
-    // Check if the article's title, body, or author includes the search text
-    return (
-      (article.title && article.title.includes(searchText)) ||
-      (article.body && article.body.includes(searchText)) ||
-      (article.author && article.author.includes(searchText))
-    );
-  });
-
+  // Function to toggle the display of comments
   const handleCommentClick = (articleId) => {
-    if (commentedArticleId === articleId) {
-      // If comments are already displayed, hide them
-      setCommentedArticleId(null);
-    } else {
-      // Show comments for the selected article
-      setCommentedArticleId(articleId);
-    }
+    setCommentedArticleId(commentedArticleId === articleId ? null : articleId);
   };
 
+  // Generate fake comments
   const generateFakeComments = () => {
     return [
-      { id: 1, text: "Lorem ipsum dolor sit amet.", user: "Ben" },
-      { id: 2, text: "Lorem ipsum dolor sit amet consectetur.", user: "Linda" },
+      { id: 1, text: "Great post!", user: "Alice" },
+      { id: 2, text: "Interesting perspective.", user: "Bob" },
     ];
   };
 
-  const sortedArticles = filteredArticles.slice().sort((a, b) => {
-    // Convert the timestamps to Date objects for comparison
-    const timestampA = new Date(a.timestamp);
-    const timestampB = new Date(b.timestamp);
-
-    // Compare the timestamps in descending order
-    return timestampB - timestampA;
-  });
+  // Filter and sort articles
+  const sortedArticles = articles
+    .filter(
+      (article) =>
+        article.title.includes(searchText) ||
+        article.body.includes(searchText) ||
+        article.author.includes(searchText)
+    )
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   return (
     <div className="container">
@@ -126,6 +97,7 @@ const Posts = () => {
             Cancel
           </button>
           <input
+            key={fileInputKey}
             className="col-md-3"
             type="file"
             accept="image/*"
@@ -155,7 +127,13 @@ const Posts = () => {
             <p>{article.body}</p>
             <p>Author: {article.author}</p>
             <p>Timestamp: {new Date(article.timestamp).toLocaleString()}</p>
-            <img src={article.imageUrl} alt="Article" />
+            {article.imageUrl && (
+              <img
+                src={article.imageUrl}
+                alt="Article"
+                className="article-image"
+              />
+            )}
             <br />
             <br />
             <button className="btn btn-info mx-2">Edit</button>
