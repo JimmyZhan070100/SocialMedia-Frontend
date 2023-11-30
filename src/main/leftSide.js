@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useArticle } from "./postProvider";
 import * as dataFetchers from "../getData";
 
-const LeftSide = () => {
+const LeftSide = ({ onFollowChange }) => {
   const { userIds, setUserIds, articles, setArticles } = useArticle();
   const DEFAULT_IMAGE =
     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT0M01YNSrXlAxDO-nSwD-a8FZLr8z3Acg5U-81iOejxQ&s";
@@ -135,6 +135,7 @@ const LeftSide = () => {
           ...prevFollowedUsers,
           newFollower,
         ]);
+        onFollowChange();
       } else {
         setError("This user does not exist.");
       }
@@ -161,6 +162,7 @@ const LeftSide = () => {
       })
       .then((data) => {
         setFollowedUsers(data.following);
+        onFollowChange();
       })
       .catch((error) => {
         console.error("Error unfollowing user:", error);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-const Posts = () => {
+const Posts = ({ fetchTrigger }) => {
   const [articles, setArticles] = useState([]);
   const [newArticle, setNewArticle] = useState("");
   const [newArticleImage, setNewArticleImage] = useState(null);
@@ -48,7 +48,7 @@ const Posts = () => {
     if (userData && userData.username) {
       fetchArticles(userData.username);
     }
-  }, []);
+  }, [fetchTrigger]);
 
   // Function to handle the posting of a new article
   const handlePostArticle = () => {

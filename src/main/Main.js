@@ -9,6 +9,11 @@ import "./main.css";
 import { ArticleProvider } from "./postProvider";
 
 const Main = ({ formData, updateForm }) => {
+  const [fetchTrigger, setFetchTrigger] = useState(false);
+
+  const triggerFetchArticles = () => {
+    setFetchTrigger((prev) => !prev); // Toggle the trigger
+  };
   // Pass updateForm as a prop
   return (
     <ArticleProvider>
@@ -16,10 +21,13 @@ const Main = ({ formData, updateForm }) => {
         <Nav updateForm={updateForm} /> {/* Pass updateForm to Nav component */}
         <div className="row">
           <div className="col-md-3">
-            <LeftSide data-testid="left-side" />
+            <LeftSide
+              data-testid="left-side"
+              onFollowChange={triggerFetchArticles}
+            />
           </div>
           <div className="col-md-8">
-            <Posts />
+            <Posts fetchTrigger={fetchTrigger} />
           </div>
         </div>
       </div>
