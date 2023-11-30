@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Posts = () => {
   const [articles, setArticles] = useState([]);
@@ -10,23 +10,82 @@ const Posts = () => {
   const [searchText, setSearchText] = useState("");
   const [commentedArticleId, setCommentedArticleId] = useState(null);
 
-  // Retrieve user data from localStorage
-  let userData = localStorage.getItem("user");
-  userData = JSON.parse(userData);
+  // Retrieve user data from localStorage and parse it
+  const getUserData = () => {
+    const userDataString = localStorage.getItem("user");
+    return userDataString ? JSON.parse(userDataString) : null;
+  };
+
+  // Function to fetch articles
+  const fetchArticles = (username) => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/articles/${username}`, {
+      credentials: "include", // if your backend requires cookies or session
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to fetch articles");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const fetchedArticles = data.articles.map((article) => ({
+          id: article.pid,
+          body: article.text,
+          author: article.author,
+          imageUrl: article.image ? article.image.url : "",
+          timestamp: article.date,
+        }));
+        setArticles(fetchedArticles);
+      })
+      .catch((error) => {
+        console.error("Error fetching articles:", error);
+      });
+  };
+
+  // Fetch articles when component mounts or when username changes
+  useEffect(() => {
+    const userData = getUserData();
+    if (userData && userData.username) {
+      fetchArticles(userData.username);
+    }
+  }, []);
 
   // Function to handle the posting of a new article
   const handlePostArticle = () => {
-    const newArticleObject = {
-      id: Date.now(),
-      body: newArticle,
-      author: userData.username,
-      imageUrl: newArticleImage ? URL.createObjectURL(newArticleImage) : null,
-      timestamp: new Date().toISOString(),
-    };
-    setArticles([newArticleObject, ...articles]);
-    setNewArticle("");
-    setNewArticleImage(null);
-    setFileInputKey(Date.now()); // Reset the file input
+    const formData = new FormData();
+    formData.append("text", newArticle);
+    if (newArticleImage) {
+      formData.append("image", newArticleImage);
+    }
+
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/article`, {
+      method: "POST",
+      body: formData,
+      credentials: "include", // if your backend requires cookies or session
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to post article");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        const newArticleFromBackend = {
+          id: data.pid,
+          body: data.text,
+          author: data.author,
+          imageUrl: data.image ? data.image.url : "",
+          timestamp: data.date,
+        };
+
+        setArticles([newArticleFromBackend, ...articles]);
+        setNewArticle("");
+        setNewArticleImage(null);
+        setFileInputKey(Date.now()); // Reset the file input
+      })
+      .catch((error) => {
+        console.error("Error posting article:", error);
+      });
   };
 
   // Function to handle image uploads
@@ -79,13 +138,14 @@ const Posts = () => {
     ];
   };
 
-  // Filter and sort articles
-  const sortedArticles = articles
-    .filter(
-      (article) =>
-        article.body.includes(searchText) || article.author.includes(searchText)
-    )
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  // // Filter and sort articles
+  // const sortedArticles = articles
+  //   .filter((article) => {
+  //     const body = article.body || "";
+  //     const author = article.author || "";
+  //     article.body.includes(searchText) || article.author.includes(searchText);
+  //   })
+  //   .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   return (
     <div className="container">
@@ -126,9 +186,11 @@ const Posts = () => {
           </div>
         </div>
       </div>
+      {/* Display articles */}
       <div className="row col-10 mx-auto">
-        {sortedArticles.map((article) => (
+        {articles.map((article) => (
           <div className="border p-3 mb-3" key={article.id}>
+            {/* Editing logic */}
             {editingArticleId === article.id ? (
               <textarea
                 value={editedContent}
@@ -142,8 +204,10 @@ const Posts = () => {
             ) : (
               <p>{article.body}</p>
             )}
+            {/* Article details */}
             <p>Author: {article.author}</p>
             <p>Timestamp: {new Date(article.timestamp).toLocaleString()}</p>
+            {/* Image display logic */}
             {article.imageUrl && (
               <img
                 src={article.imageUrl}
@@ -153,6 +217,7 @@ const Posts = () => {
             )}
             <br />
             <br />
+            {/* Article buttons */}
             {editingArticleId === article.id ? (
               <button
                 className="btn btn-success mx-2"
