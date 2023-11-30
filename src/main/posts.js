@@ -4,6 +4,8 @@ const Posts = () => {
   const [articles, setArticles] = useState([]);
   const [newArticle, setNewArticle] = useState("");
   const [newArticleImage, setNewArticleImage] = useState(null);
+  const [editingArticleId, setEditingArticleId] = useState(null);
+  const [editedContent, setEditedContent] = useState("");
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [searchText, setSearchText] = useState("");
   const [commentedArticleId, setCommentedArticleId] = useState(null);
@@ -51,6 +53,25 @@ const Posts = () => {
     setNewArticle("");
     setNewArticleImage(null);
     setFileInputKey(Date.now());
+  };
+
+  const handleEditArticle = (articleId) => {
+    const articleToEdit = articles.find((article) => article.id === articleId);
+    setEditingArticleId(articleId);
+    setEditedContent(articleToEdit.body);
+  };
+
+  const handleUpdateArticle = () => {
+    setArticles(
+      articles.map((article) => {
+        if (article.id === editingArticleId) {
+          return { ...article, body: editedContent };
+        }
+        return article;
+      })
+    );
+    setEditingArticleId(null);
+    setEditedContent("");
   };
 
   // Function to delete an article
@@ -124,7 +145,19 @@ const Posts = () => {
         {sortedArticles.map((article) => (
           <div className="border p-3 mb-3" key={article.id}>
             <h3>{article.title}</h3>
-            <p>{article.body}</p>
+            {editingArticleId === article.id ? (
+              <textarea
+                value={editedContent}
+                onChange={(e) => setEditedContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleUpdateArticle();
+                  }
+                }}
+              />
+            ) : (
+              <p>{article.body}</p>
+            )}
             <p>Author: {article.author}</p>
             <p>Timestamp: {new Date(article.timestamp).toLocaleString()}</p>
             {article.imageUrl && (
@@ -136,19 +169,29 @@ const Posts = () => {
             )}
             <br />
             <br />
-            <button className="btn btn-info mx-2">Edit</button>
-            <button
-              className="btn btn-success mx-2"
-              onClick={() => handleCommentClick(article.id)}
-            >
-              Comment
-            </button>
-            <button
-              className="btn btn-danger"
-              onClick={() => handleDeleteArticle(article.id)}
-            >
-              Delete
-            </button>
+            {editingArticleId === article.id ? (
+              <button
+                className="btn btn-success mx-2"
+                onClick={handleUpdateArticle}
+              >
+                Update
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn btn-info mx-2"
+                  onClick={() => handleEditArticle(article.id)}
+                >
+                  Edit
+                </button>
+                <button
+                  className="btn btn-danger mx-2"
+                  onClick={() => handleDeleteArticle(article.id)}
+                >
+                  Delete
+                </button>
+              </>
+            )}
             {commentedArticleId === article.id && (
               <div className="comments">
                 <br />
