@@ -12,30 +12,17 @@ const Posts = () => {
 
   // Retrieve user data from localStorage
   let userData = localStorage.getItem("user");
-  if (!userData) {
-    userData = localStorage.getItem("formData");
-    if (userData) {
-      userData = JSON.parse(userData);
-      userData.username = userData.userName;
-      userData.id = -1;
-      localStorage.setItem("formData", JSON.stringify(userData));
-    }
-  } else {
-    userData = JSON.parse(userData);
-  }
+  userData = JSON.parse(userData);
 
   // Function to handle the posting of a new article
   const handlePostArticle = () => {
     const newArticleObject = {
       id: Date.now(),
-      userId: userData.id,
-      title: newArticle,
       body: newArticle,
       author: userData.username,
       imageUrl: newArticleImage ? URL.createObjectURL(newArticleImage) : null,
       timestamp: new Date().toISOString(),
     };
-
     setArticles([newArticleObject, ...articles]);
     setNewArticle("");
     setNewArticleImage(null);
@@ -96,9 +83,7 @@ const Posts = () => {
   const sortedArticles = articles
     .filter(
       (article) =>
-        article.title.includes(searchText) ||
-        article.body.includes(searchText) ||
-        article.author.includes(searchText)
+        article.body.includes(searchText) || article.author.includes(searchText)
     )
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -144,7 +129,6 @@ const Posts = () => {
       <div className="row col-10 mx-auto">
         {sortedArticles.map((article) => (
           <div className="border p-3 mb-3" key={article.id}>
-            <h3>{article.title}</h3>
             {editingArticleId === article.id ? (
               <textarea
                 value={editedContent}
@@ -183,6 +167,12 @@ const Posts = () => {
                   onClick={() => handleEditArticle(article.id)}
                 >
                   Edit
+                </button>
+                <button
+                  className="btn btn-success mx-2"
+                  onClick={() => handleCommentClick(article.id)}
+                >
+                  Comment
                 </button>
                 <button
                   className="btn btn-danger mx-2"
