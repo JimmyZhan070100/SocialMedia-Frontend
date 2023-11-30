@@ -16,6 +16,8 @@ const Posts = ({ fetchTrigger }) => {
     return userDataString ? JSON.parse(userDataString) : null;
   };
 
+  const currentUser = getUserData();
+
   // Function to fetch articles
   const fetchArticles = (username) => {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/articles/${username}`, {
@@ -107,15 +109,41 @@ const Posts = ({ fetchTrigger }) => {
     setEditedContent(articleToEdit.body);
   };
 
-  const handleUpdateArticle = () => {
-    setArticles(
-      articles.map((article) => {
-        if (article.id === editingArticleId) {
-          return { ...article, body: editedContent };
+  // Function to update an article in the backend
+  const updateArticleBackend = (articleId, updatedText) => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/articles/${articleId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ text: updatedText }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Failed to update article");
         }
-        return article;
+        return response.json();
       })
-    );
+      .then((data) => {
+        // Update articles state with the updated article
+        setArticles(
+          articles.map((article) => {
+            if (article.id === articleId) {
+              return { ...article, body: updatedText };
+            }
+            return article;
+          })
+        );
+      })
+      .catch((error) => {
+        console.error("Error updating article:", error);
+      });
+  };
+
+  // Function to handle updating the article
+  const handleUpdateArticle = () => {
+    updateArticleBackend(editingArticleId, editedContent);
     setEditingArticleId(null);
     setEditedContent("");
   };
@@ -138,15 +166,14 @@ const Posts = ({ fetchTrigger }) => {
     ];
   };
 
-  // // Filter and sort articles
-  // const sortedArticles = articles
-  //   .filter((article) => {
-  //     const body = article.body || "";
-  //     const author = article.author || "";
-  //     article.body.includes(searchText) || article.author.includes(searchText);
-  //   })
-  //   .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
+  // Function to filter articles based on searchText
+  const filterArticles = () => {
+    return articles.filter(
+      (article) =>
+        article.body.toLowerCase().includes(searchText.toLowerCase()) ||
+        article.author.toLowerCase().includes(searchText.toLowerCase())
+    );
+  };
   return (
     <div className="container">
       <div className="row col-10 mx-auto">
@@ -188,7 +215,7 @@ const Posts = ({ fetchTrigger }) => {
       </div>
       {/* Display articles */}
       <div className="row col-10 mx-auto">
-        {articles.map((article) => (
+        {filterArticles().map((article) => (
           <div className="border p-3 mb-3" key={article.id}>
             {/* Editing logic */}
             {editingArticleId === article.id ? (
@@ -217,36 +244,43 @@ const Posts = ({ fetchTrigger }) => {
             )}
             <br />
             <br />
-            {/* Article buttons */}
-            {editingArticleId === article.id ? (
-              <button
-                className="btn btn-success mx-2"
-                onClick={handleUpdateArticle}
-              >
-                Update
-              </button>
-            ) : (
-              <>
-                <button
-                  className="btn btn-info mx-2"
-                  onClick={() => handleEditArticle(article.id)}
-                >
-                  Edit
-                </button>
-                <button
-                  className="btn btn-success mx-2"
-                  onClick={() => handleCommentClick(article.id)}
-                >
-                  Comment
-                </button>
-                <button
-                  className="btn btn-danger mx-2"
-                  onClick={() => handleDeleteArticle(article.id)}
-                >
-                  Delete
-                </button>
-              </>
+            {/* Conditionally render Edit and Delete buttons for user's own articles */}
+            {currentUser && article.author === currentUser.username && (
+              <div>
+                {editingArticleId === article.id ? (
+                  <button
+                    className="btn btn-success mx-2"
+                    onClick={handleUpdateArticle}
+                  >
+                    Update
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className="btn btn-info mx-2"
+                      onClick={() => handleEditArticle(article.id)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="btn btn-danger mx-2"
+                      onClick={() => handleDeleteArticle(article.id)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </div>
             )}
+
+            {/* Always render Comment button */}
+            <br />
+            <button
+              className="btn btn-success mx-2"
+              onClick={() => handleCommentClick(article.id)}
+            >
+              Comment
+            </button>
             {commentedArticleId === article.id && (
               <div className="comments">
                 <br />
