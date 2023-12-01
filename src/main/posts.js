@@ -11,6 +11,7 @@ const Posts = ({ fetchTrigger }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [articlesPerPage] = useState(10);
   const [commentedArticleId, setCommentedArticleId] = useState(null);
+  const [newComment, setNewComment] = useState({});
 
   // Retrieve user data from localStorage and parse it
   const getUserData = () => {
@@ -38,6 +39,7 @@ const Posts = ({ fetchTrigger }) => {
           author: article.author,
           imageUrl: article.image ? article.image.url : "",
           timestamp: article.date,
+          comments: article.comments || [],
         }));
         setArticles(fetchedArticles);
       })
@@ -186,6 +188,48 @@ const Posts = ({ fetchTrigger }) => {
     ];
   };
 
+  // Function to handle adding comments to an article
+  const handleAddComment = (articleId) => {
+    // Ensure a comment is entered
+    if (!newComment[articleId]) {
+      console.error("Comment cannot be empty");
+      return;
+    }
+
+    const commentText = newComment[articleId];
+
+    // Send PUT request to the backend
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/articles/${articleId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ text: commentText, commentId: -1 }), // -1 indicates a new comment
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // Update the articles state with the new comment
+        setArticles(
+          articles.map((article) => {
+            if (article.id === articleId) {
+              // Append the new comment to the article's comments
+              return {
+                ...article,
+                comments: [...article.comments, data.comment],
+              };
+            }
+            return article;
+          })
+        );
+        // Reset the comment field
+        setNewComment({ ...newComment, [articleId]: "" });
+      })
+      .catch((error) => {
+        console.error("Error adding comment:", error);
+      });
+  };
+
   // Filter articles based on search text
   const filteredArticles = articles.filter((article) => {
     return (
@@ -304,9 +348,24 @@ const Posts = ({ fetchTrigger }) => {
                 )}
               </div>
             )}
-
+            {/* Comment input and submit button */}
+            <div>
+              <input
+                type="text"
+                placeholder="Write a comment..."
+                value={newComment[article.id] || ""}
+                onChange={(e) =>
+                  setNewComment({ ...newComment, [article.id]: e.target.value })
+                }
+              />
+              <button
+                className="btn btn-primary"
+                onClick={() => handleAddComment(article.id)}
+              >
+                Submit Comment
+              </button>
+            </div>
             {/* Always render Comment button */}
-            <br />
             <button
               className="btn btn-success mx-2"
               onClick={() => handleCommentClick(article.id)}
