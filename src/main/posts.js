@@ -56,6 +56,24 @@ const Posts = ({ fetchTrigger }) => {
 
   // Function to handle the posting of a new article
   const handlePostArticle = () => {
+    // Create a temporary new article object
+    const tempNewArticle = {
+      id: Date.now(), // Temporary unique ID
+      body: newArticle,
+      author: currentUser.username, // Use username from currentUser
+      imageUrl: newArticleImage ? URL.createObjectURL(newArticleImage) : "",
+      timestamp: new Date().toISOString(),
+    };
+
+    // Optimistically update the UI with the new article
+    setArticles([tempNewArticle, ...articles]);
+
+    // Reset the form fields
+    setNewArticle("");
+    setNewArticleImage(null);
+    setFileInputKey(Date.now());
+
+    // Now proceed to upload the new article to the backend
     const formData = new FormData();
     formData.append("text", newArticle);
     if (newArticleImage) {
@@ -65,7 +83,7 @@ const Posts = ({ fetchTrigger }) => {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/article`, {
       method: "POST",
       body: formData,
-      credentials: "include", // if your backend requires cookies or session
+      credentials: "include",
     })
       .then((response) => {
         if (!response.ok) {
@@ -74,21 +92,21 @@ const Posts = ({ fetchTrigger }) => {
         return response.json();
       })
       .then((data) => {
-        const newArticleFromBackend = {
-          id: data.pid,
-          body: data.text,
-          author: data.author,
-          imageUrl: data.image ? data.image.url : "",
-          timestamp: data.date,
-        };
-
-        setArticles([newArticleFromBackend, ...articles]);
-        setNewArticle("");
-        setNewArticleImage(null);
-        setFileInputKey(Date.now()); // Reset the file input
+        // Replace the temporary article with the one from the backend
+        setArticles((prevArticles) => {
+          return prevArticles.map((article) =>
+            article.id === tempNewArticle.id
+              ? { ...article, id: data.pid } // Replace temp ID with actual ID from backend
+              : article
+          );
+        });
       })
       .catch((error) => {
         console.error("Error posting article:", error);
+        // Optionally, remove the temporary article if the post fails
+        setArticles((prevArticles) =>
+          prevArticles.filter((article) => article.id !== tempNewArticle.id)
+        );
       });
   };
 
