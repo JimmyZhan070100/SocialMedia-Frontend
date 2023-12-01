@@ -8,6 +8,8 @@ const Posts = ({ fetchTrigger }) => {
   const [editedContent, setEditedContent] = useState("");
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [searchText, setSearchText] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [articlesPerPage] = useState(10);
   const [commentedArticleId, setCommentedArticleId] = useState(null);
 
   // Retrieve user data from localStorage and parse it
@@ -166,14 +168,26 @@ const Posts = ({ fetchTrigger }) => {
     ];
   };
 
-  // Function to filter articles based on searchText
-  const filterArticles = () => {
-    return articles.filter(
-      (article) =>
-        article.body.toLowerCase().includes(searchText.toLowerCase()) ||
-        article.author.toLowerCase().includes(searchText.toLowerCase())
+  // Filter articles based on search text
+  const filteredArticles = articles.filter((article) => {
+    return (
+      article.body.toLowerCase().includes(searchText.toLowerCase()) ||
+      article.author.toLowerCase().includes(searchText.toLowerCase())
     );
-  };
+  });
+
+  // Get current articles for pagination
+  const indexOfLastArticle = currentPage * articlesPerPage;
+  const indexOfFirstArticle = indexOfLastArticle - articlesPerPage;
+  const currentArticles = filteredArticles.slice(
+    indexOfFirstArticle,
+    indexOfLastArticle
+  );
+
+  // Change page
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const totalPages = Math.ceil(filteredArticles.length / articlesPerPage);
+
   return (
     <div className="container">
       <div className="row col-10 mx-auto">
@@ -215,7 +229,7 @@ const Posts = ({ fetchTrigger }) => {
       </div>
       {/* Display articles */}
       <div className="row col-10 mx-auto">
-        {filterArticles().map((article) => (
+        {currentArticles.map((article) => (
           <div className="border p-3 mb-3" key={article.id}>
             {/* Editing logic */}
             {editingArticleId === article.id ? (
@@ -296,6 +310,25 @@ const Posts = ({ fetchTrigger }) => {
           </div>
         ))}
       </div>
+      {/* Pagination Controls */}
+      <nav>
+        <ul className="pagination d-flex justify-content-center">
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+            <li key={number} className="page-item">
+              <a
+                onClick={(e) => {
+                  e.preventDefault();
+                  paginate(number);
+                }}
+                href="!#"
+                className="page-link"
+              >
+                {number}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
     </div>
   );
 };
