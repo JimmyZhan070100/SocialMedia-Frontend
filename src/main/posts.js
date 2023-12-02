@@ -12,6 +12,8 @@ const Posts = ({ fetchTrigger }) => {
   const [articlesPerPage] = useState(10);
   const [commentedArticleId, setCommentedArticleId] = useState(null);
   const [newComment, setNewComment] = useState({});
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editedComment, setEditedComment] = useState("");
 
   // Retrieve user data from localStorage and parse it
   const getUserData = () => {
@@ -141,7 +143,7 @@ const Posts = ({ fetchTrigger }) => {
         "Content-Type": "application/json",
       },
       credentials: "include",
-      body: JSON.stringify({ text: updatedText }),
+      body: JSON.stringify({ text: updatedText, commentId: -2 }),
     })
       .then((response) => {
         if (!response.ok) {
@@ -189,7 +191,7 @@ const Posts = ({ fetchTrigger }) => {
       console.error("Comment cannot be empty");
       return;
     }
-
+    console.log(articleId);
     // Send PUT request to the backend
     fetch(`${process.env.REACT_APP_BACKEND_URL}/articles/${articleId}`, {
       method: "PUT",
@@ -220,6 +222,53 @@ const Posts = ({ fetchTrigger }) => {
       })
       .catch((error) => {
         console.error("Error adding comment:", error);
+      });
+  };
+
+  // Function to handle editing a comment
+  const handleEditComment = (articleId, commentId, currentText) => {
+    setEditingCommentId(commentId);
+    setEditedComment(currentText);
+  };
+
+  // Function to update a comment in the backend
+  const handleUpdateComment = (articleId, commentId) => {
+    if (!editedComment.trim()) {
+      console.error("Comment cannot be empty");
+      return;
+    }
+    console.log(commentId);
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/articles/${articleId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ text: editedComment, commentId }), // Pass the comment ID for the update
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        // Update the articles state with the updated comment
+        setArticles((prevArticles) =>
+          prevArticles.map((article) => {
+            if (article.id === articleId) {
+              // Update the specific comment by mapping over the comments array
+              const updatedComments = article.comments.map((comment) =>
+                comment.id === commentId
+                  ? { ...comment, text: editedComment }
+                  : comment
+              );
+              return { ...article, comments: updatedComments };
+            }
+            return article;
+          })
+        );
+        // Reset editing state
+        setEditingCommentId(null);
+        setEditedComment("");
+      })
+      .catch((error) => {
+        console.error("Error updating comment:", error);
       });
   };
 
@@ -354,10 +403,47 @@ const Posts = ({ fetchTrigger }) => {
               <div className="comments">
                 {article.comments.length > 0 ? (
                   article.comments.map((comment, index) => (
-                    <div key={index} className="comment">
-                      <p>
-                        <strong>{comment.author}:</strong> {comment.text}
-                      </p>
+                    <div className="comment mb-2" key={index}>
+                      {" "}
+                      <div className="d-flex justify-content-between align-items-center">
+                        {editingCommentId === comment.id ? (
+                          <>
+                            <textarea
+                              value={editedComment}
+                              onChange={(e) => setEditedComment(e.target.value)}
+                            />
+                            <button
+                              className="btn btn-primary"
+                              onClick={() =>
+                                handleUpdateComment(article.id, comment.id)
+                              }
+                            >
+                              Update Comment
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <p>
+                              <strong>{comment.author}:</strong> {comment.text}
+                            </p>
+                            {currentUser &&
+                              comment.author === currentUser.username && (
+                                <button
+                                  className="btn btn-secondary btn-sm ms-2"
+                                  onClick={() =>
+                                    handleEditComment(
+                                      article.id,
+                                      comment.id,
+                                      comment.text
+                                    )
+                                  }
+                                >
+                                  Edit
+                                </button>
+                              )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))
                 ) : (
