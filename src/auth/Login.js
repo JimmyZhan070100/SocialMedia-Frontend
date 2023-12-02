@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { connect, useDispatch, useSelector } from "react-redux";
 import { updateFormData, loginFail } from "../actions";
 import * as dataFetchers from "../getData";
+import { FcGoogle } from "react-icons/fc";
 
 const Login = ({ updateForm }) => {
   const [username, setUsername] = useState("");
@@ -11,6 +12,11 @@ const Login = ({ updateForm }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const error = useSelector((state) => state.formData.error);
+
+  const GoogleLogin = () => {
+    window.location.href = `${process.env.REACT_APP_BACKEND_URL}/auth/google`;
+  };
+
   const handleLogin = () => {
     fetch(`${process.env.REACT_APP_BACKEND_URL}/login`, {
       method: "POST",
@@ -92,6 +98,11 @@ const Login = ({ updateForm }) => {
             LogIn
           </button>
           <p style={{ color: "red", fontWeight: "bold" }}>{error}</p>
+        </div>
+        <div className="SocialLogin">
+          <button onClick={GoogleLogin} className="btn btn-light">
+            <FcGoogle className="google-icon" /> Login with Google
+          </button>
         </div>
         <div className="CreateAccount">
           <button className="btns">

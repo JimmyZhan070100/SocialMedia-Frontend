@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FcGoogle } from "react-icons/fc";
 import { connect } from "react-redux";
 import { Link } from "react-router-dom";
 import { updateFormData } from ".././actions";
@@ -26,6 +27,77 @@ const Profile = ({ formData, updateForm }) => {
   const [username, setUsername] = useState("");
   const [profilePicture, setProfilePicture] = useState(null);
   const [errors, setErrors] = useState({});
+  const [hasGoogleId, setHasGoogleId] = useState(false);
+
+  const handleGoogleConnect = () => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      const { username } = JSON.parse(storedUser);
+
+      // Check if the user has a Google ID
+      if (hasGoogleId) {
+        // If the user has a Google ID, initiate the disconnect
+        disconnectFromGoogle(username);
+      } else {
+        // If the user does not have a Google ID, initiate the connect
+        connectToGoogle(username);
+      }
+    }
+  };
+
+  // Function to connect to Google
+  const connectToGoogle = (username) => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/google/${username}`, {
+      method: "GET",
+      credentials: "include",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.googleId) {
+          // User has a Google ID
+          setHasGoogleId(true);
+          // If the user already has a Google ID, no need to redirect
+          console.log("User already has a Google ID");
+        } else {
+          // User does not have a Google ID, initiate the connect
+          window.location.href = `${process.env.REACT_APP_BACKEND_URL}/auth/google/connect?username=${username}`;
+        }
+      })
+      .catch((error) => {
+        console.error("Error checking Google ID:", error);
+      });
+  };
+
+  // Function to disconnect from Google
+  const disconnectFromGoogle = (username) => {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/google/${username}`, {
+      method: "PUT",
+      credentials: "include",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (data.message === "Google ID cleared successfully") {
+          // Clear the Google ID on the frontend
+          setHasGoogleId(false);
+          console.log(data.message);
+        } else {
+          console.log("Failed to clear Google ID");
+        }
+      })
+      .catch((error) => {
+        console.error("Error disconnecting from Google:", error);
+      });
+  };
 
   useEffect(() => {
     // Load formData from localStorage on component mount
@@ -39,6 +111,28 @@ const Profile = ({ formData, updateForm }) => {
     if (storedUser) {
       const { username } = JSON.parse(storedUser);
       fetchUserAvatar(username, setProfilePicture);
+
+      // Fetch the user's Google ID status
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/google/${username}`, {
+        credentials: "include",
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          // Check if the data includes a googleId
+          if (data.googleId) {
+            setHasGoogleId(true);
+          } else {
+            setHasGoogleId(false);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching Google ID:", error);
+        });
     }
   }, [updateForm]);
 
@@ -76,6 +170,11 @@ const Profile = ({ formData, updateForm }) => {
               }
             >
               Upload new picture
+            </button>
+            <br />
+            <button className="btn btn-light" onClick={handleGoogleConnect}>
+              <FcGoogle className="google-icon" />{" "}
+              {hasGoogleId ? "Disconnect with Google" : "Connect with Google"}
             </button>
           </div>
         </div>
