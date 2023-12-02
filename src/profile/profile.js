@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { connect } from "react-redux";
-import { Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { updateFormData } from ".././actions";
 import {
   handleInputChange,
@@ -28,6 +28,10 @@ const Profile = ({ formData, updateForm }) => {
   const [profilePicture, setProfilePicture] = useState(null);
   const [errors, setErrors] = useState({});
   const [hasGoogleId, setHasGoogleId] = useState(false);
+  const [googleConnectError, setGoogleConnectError] = useState("");
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const googleIdLinkedError = queryParams.get("error") === "googleIdLinked";
 
   const handleGoogleConnect = () => {
     const storedUser = localStorage.getItem("user");
@@ -47,30 +51,47 @@ const Profile = ({ formData, updateForm }) => {
 
   // Function to connect to Google
   const connectToGoogle = (username) => {
-    fetch(`${process.env.REACT_APP_BACKEND_URL}/google/${username}`, {
-      method: "GET",
-      credentials: "include",
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-        return response.json();
+    // Reset any previous error messages
+    setGoogleConnectError("");
+
+    // Check if the user already has a Google ID
+    if (hasGoogleId) {
+      // If the user already has a Google ID, do not proceed
+      console.log("User already has a Google ID");
+    } else {
+      // Fetch the user's Google ID status
+      fetch(`${process.env.REACT_APP_BACKEND_URL}/google/${username}`, {
+        credentials: "include",
       })
-      .then((data) => {
-        if (data.googleId) {
-          // User has a Google ID
-          setHasGoogleId(true);
-          // If the user already has a Google ID, no need to redirect
-          console.log("User already has a Google ID");
-        } else {
-          // User does not have a Google ID, initiate the connect
-          window.location.href = `${process.env.REACT_APP_BACKEND_URL}/auth/google/connect?username=${username}`;
-        }
-      })
-      .catch((error) => {
-        console.error("Error checking Google ID:", error);
-      });
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          if (data.googleId) {
+            // User has a Google ID, show error message
+            setGoogleConnectError(
+              "The Google account is already linked with another user"
+            );
+          } else {
+            // User does not have a Google ID, initiate the connect
+            setHasGoogleId(true);
+            // Save formData to local storage
+            localStorage.setItem("formData", JSON.stringify(formData));
+            window.location.href = `${process.env.REACT_APP_BACKEND_URL}/auth/google/connect?username=${username}`;
+          }
+        })
+        .catch((error) => {
+          // Handle the error here and display the error message to the user
+          console.error("Error checking Google ID:", error);
+          // Set the error message in state
+          setGoogleConnectError(
+            "An error occurred while checking the Google account"
+          );
+        });
+    }
   };
 
   // Function to disconnect from Google
@@ -176,6 +197,16 @@ const Profile = ({ formData, updateForm }) => {
               <FcGoogle className="google-icon" />{" "}
               {hasGoogleId ? "Disconnect with Google" : "Connect with Google"}
             </button>
+            {googleConnectError && (
+              <div className="error-message text-center text-danger">
+                {googleConnectError}
+              </div>
+            )}
+            {googleIdLinkedError && (
+              <div className="error-message text-center text-danger">
+                The Google account is already linked with another user.
+              </div>
+            )}
           </div>
         </div>
       </div>
