@@ -42,6 +42,7 @@ const Posts = ({ fetchTrigger }) => {
           comments: article.comments || [],
         }));
         setArticles(fetchedArticles);
+        console.log(fetchedArticles);
       })
       .catch((error) => {
         console.error("Error fetching articles:", error);
@@ -65,6 +66,7 @@ const Posts = ({ fetchTrigger }) => {
       author: currentUser.username, // Use username from currentUser
       imageUrl: newArticleImage ? URL.createObjectURL(newArticleImage) : "",
       timestamp: new Date().toISOString(),
+      comments: [],
     };
 
     // Optimistically update the UI with the new article
@@ -180,23 +182,13 @@ const Posts = ({ fetchTrigger }) => {
     setCommentedArticleId(commentedArticleId === articleId ? null : articleId);
   };
 
-  // Generate fake comments
-  const generateFakeComments = () => {
-    return [
-      { id: 1, text: "Great post!", user: "Alice" },
-      { id: 2, text: "Interesting perspective.", user: "Bob" },
-    ];
-  };
-
   // Function to handle adding comments to an article
   const handleAddComment = (articleId) => {
-    // Ensure a comment is entered
-    if (!newComment[articleId]) {
+    const commentText = newComment[articleId] || "";
+    if (!commentText.trim()) {
       console.error("Comment cannot be empty");
       return;
     }
-
-    const commentText = newComment[articleId];
 
     // Send PUT request to the backend
     fetch(`${process.env.REACT_APP_BACKEND_URL}/articles/${articleId}`, {
@@ -210,14 +202,15 @@ const Posts = ({ fetchTrigger }) => {
       .then((response) => response.json())
       .then((data) => {
         // Update the articles state with the new comment
-        setArticles(
-          articles.map((article) => {
+        setArticles((prevArticles) =>
+          prevArticles.map((article) => {
             if (article.id === articleId) {
               // Append the new comment to the article's comments
-              return {
-                ...article,
-                comments: [...article.comments, data.comment],
-              };
+              const updatedComments = [
+                ...article.comments,
+                { author: currentUser.username, text: commentText },
+              ];
+              return { ...article, comments: updatedComments };
             }
             return article;
           })
@@ -348,40 +341,45 @@ const Posts = ({ fetchTrigger }) => {
                 )}
               </div>
             )}
-            {/* Comment input and submit button */}
-            <div>
-              <input
-                type="text"
-                placeholder="Write a comment..."
-                value={newComment[article.id] || ""}
-                onChange={(e) =>
-                  setNewComment({ ...newComment, [article.id]: e.target.value })
-                }
-              />
-              <button
-                className="btn btn-primary"
-                onClick={() => handleAddComment(article.id)}
-              >
-                Submit Comment
-              </button>
-            </div>
-            {/* Always render Comment button */}
+            {/* Comments section */}
             <button
               className="btn btn-success mx-2"
               onClick={() => handleCommentClick(article.id)}
             >
-              Comment
+              {commentedArticleId === article.id
+                ? "Hide Comments"
+                : "Show Comments"}
             </button>
             {commentedArticleId === article.id && (
               <div className="comments">
-                <br />
-                {generateFakeComments().map((comment) => (
-                  <div key={comment.id} className="comment">
-                    <p>
-                      {comment.user}: {comment.text}
-                    </p>
-                  </div>
-                ))}
+                {article.comments.length > 0 ? (
+                  article.comments.map((comment, index) => (
+                    <div key={index} className="comment">
+                      <p>
+                        <strong>{comment.author}:</strong> {comment.text}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p>No comments yet.</p>
+                )}
+                <input
+                  type="text"
+                  placeholder="Write a comment..."
+                  value={newComment[article.id] || ""}
+                  onChange={(e) =>
+                    setNewComment({
+                      ...newComment,
+                      [article.id]: e.target.value,
+                    })
+                  }
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleAddComment(article.id)}
+                >
+                  Submit Comment
+                </button>
               </div>
             )}
           </div>
