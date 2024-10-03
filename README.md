@@ -1,13 +1,5 @@
-[![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-24ddc0f5d75046c5622901739e7c5dd533143b0c8e959d652212380cedb1ea36.svg)](https://classroom.github.com/a/qStH2Jh6)
-
-## Slip days
-
-1. First used: 12/2 (Saturday)
-   - Finish Google OAuth and deployment
-
 ## Project information
 
-"netid": "jc272",  
 "frontend": "https://finalwebjc272.surge.sh",  
 "backend": "https://ricebooksocial-db8feb863190.herokuapp.com",
 
